@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:id="@+id/cardCat"
+    android:background="@drawable/button_bg"
+    android:layout_height="@dimen/_20sdp"
+    android:layout_marginEnd="5dp"
+    app:cardCornerRadius="@dimen/_10sdp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/_10sdp"
+        android:paddingEnd="@dimen/_10sdp">
+
+        <ImageView
+            android:id="@+id/categoryImg"
+            android:layout_width="@dimen/_20sdp"
+            android:layout_height="@dimen/_20sdp"
+            android:padding="4dp"/>
+
+        <TextView
+            android:id="@+id/categoryNameTxt"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="@string/app_name"
+            android:textColor="@color/lb_tv_white"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>

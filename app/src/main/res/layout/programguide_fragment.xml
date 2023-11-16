@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/programguide_constraint_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/default_background"
+    tools:ignore="Overdraw">
+
+    <!--<Button
+        android:id="@+id/programguide_jump_to_live"
+        style="@style/ProgramGuide.Button.JumpToLive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/programguide_filter_spacing"
+        android:text="@string/programguide_button_jump_to_live"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/programguide_time_row"
+        app:layout_constraintStart_toEndOf="@id/programguide_time_of_day_filter"
+        app:layout_constraintTop_toTopOf="@id/programguide_top_margin" />-->
+
+
+    <View
+        android:id="@+id/bottom_detail"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/programguide_bottom_detail_height"
+        android:layout_marginTop="@dimen/_5sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerviewCategory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal"
+        android:visibility="visible"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bottom_detail"
+        tools:listitem="@layout/category_item" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_margin="10dp"
+        android:id="@+id/mainConstraintBgColor"
+        android:background="@drawable/bottom_bg"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/recyclerviewCategory">
+
+        <Space
+            android:id="@+id/programguide_menu_visible_margin"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/programguide_page_top_margin_menu_visible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Space
+            android:id="@+id/programguide_timeline_row_negative_margin"
+            android:layout_width="@dimen/programguide_time_row_negative_margin"
+            android:layout_height="0dp"
+            app:layout_constraintEnd_toEndOf="@id/left_channel_guideline"
+            app:layout_constraintTop_toTopOf="@id/programguide_top_margin" />
+
+        <Space
+            android:id="@+id/programguide_current_time_indicator_top_offset"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/programguide_current_time_indicator_top_height"
+            app:layout_constraintBottom_toTopOf="@id/background"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <View
+            android:id="@+id/programguide_top_margin"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/programguide_menu_visible_margin" />
+
+        <View
+            android:id="@+id/background"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/content_background"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/programguide_time_row" />
+
+        <View
+            android:id="@+id/focus_catcher"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <ViewAnimator
+            android:id="@+id/programguide_content_animator"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:inAnimation="@android:anim/fade_in"
+            android:outAnimation="@android:anim/fade_out"
+            app:layout_constraintBottom_toBottomOf="@id/background"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/background">
+
+            <!-- Loading state -->
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true" />
+
+            <!-- Error state -->
+            <TextView
+                android:id="@+id/programguide_error_message"
+                style="@style/ProgramGuide.ErrorMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/error_fetching_content" />
+
+            <!-- ChannelData state -->
+            <com.strimm.application.lib.ProgramGuideGridView
+                android:id="@+id/programguide_grid"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </ViewAnimator>
+
+        <Space
+            android:id="@+id/left_channel_guideline"
+            android:layout_width="@dimen/programguide_channel_column_width"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- <include
+             android:id="@+id/programguide_day_filter"
+             layout="@layout/programguide_item_filter"
+             android:layout_width="0dp"
+             android:layout_height="wrap_content"
+             android:layout_marginStart="@dimen/programguide_page_left_padding"
+             app:layout_constraintBottom_toTopOf="@id/programguide_time_row"
+             app:layout_constraintStart_toStartOf="parent"
+             app:layout_constraintTop_toTopOf="@id/programguide_top_margin" />
+
+         <include
+             android:id="@+id/programguide_time_of_day_filter"
+             layout="@layout/programguide_item_filter"
+             android:layout_width="0dp"
+             android:layout_height="wrap_content"
+             android:layout_marginStart="@dimen/programguide_filter_spacing"
+             app:layout_constraintBottom_toTopOf="@id/programguide_time_row"
+             app:layout_constraintStart_toEndOf="@id/programguide_day_filter"
+             app:layout_constraintTop_toTopOf="@id/programguide_top_margin" />-->
+
+        <com.strimm.application.lib.timeline.ProgramGuideTimelineRow
+            android:id="@+id/programguide_time_row"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/programguide_time_row_height"
+            android:alpha="0"
+            android:fadingEdgeLength="20dp"
+            android:requiresFadingEdge="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/programguide_current_date"
+            app:layout_constraintTop_toTopOf="@id/programguide_top_margin"
+            tools:alpha="1"
+            tools:listitem="@layout/programguide_item_time" />
+
+        <include
+            android:id="@+id/programguide_current_date"
+            layout="@layout/programguide_item_time"
+            android:layout_width="160dp"
+            android:layout_height="@dimen/programguide_time_row_height"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/programguide_time_row" />
+
+        <include
+            android:id="@+id/programguide_current_time_indicator"
+            layout="@layout/programguide_item_time_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_marginStart="@dimen/programguide_channel_column_width"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/background"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/programguide_current_time_indicator_top_offset"
+            tools:visibility="visible" />
+
+        <View
+            android:id="@+id/programguide_focus_catcher"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <RelativeLayout
+        android:id="@+id/playerViewRelative"
+        style="@style/ProgramGuide.Image.Detail"
+        android:layout_marginStart="10dp"
+        app:layout_constraintBottom_toBottomOf="@id/bottom_detail"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/bottom_detail">
+
+        <com.google.android.exoplayer2.ui.StyledPlayerView
+            android:id="@+id/exoPlayerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:controller_layout_id="@layout/custom_controls"
+            app:hide_on_touch="true"
+            app:player_layout_id="@layout/exo_player_view"
+            app:resize_mode="fit"
+            app:show_timeout="3000"
+            app:use_controller="true" />
+
+        <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+            android:id="@+id/youtube_player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:enableAutomaticInitialization="false" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true" />
+
+    </RelativeLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="@+id/playerViewRelative"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/playerViewRelative"
+        app:layout_constraintTop_toTopOf="@+id/playerViewRelative">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/programguide_detail_image"
+                android:layout_width="@dimen/_50sdp"
+                android:layout_height="@dimen/_50sdp"
+                android:layout_marginEnd="@dimen/_10sdp"
+                android:src="@drawable/srtimm_logo"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/programguide_detail_title"
+                style="@style/ProgramGuide.Text.Detail.Title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                app:layout_constraintEnd_toStartOf="@+id/programguide_detail_image"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="NPO Politiek dfadjfha jka kjhfd adjkfhddfksdf" />
+
+            <TextView
+                android:id="@+id/programguide_detail_metadata"
+                style="@style/ProgramGuide.Text.Detail.Metadata"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                app:layout_constraintStart_toStartOf="@id/programguide_detail_title"
+                app:layout_constraintTop_toBottomOf="@id/programguide_detail_title"
+                tools:text="EenVandaag • Wo 30 jan 20:00 • AVROTROS" />
+
+            <TextView
+                android:id="@+id/programguide_detail_description"
+                style="@style/ProgramGuide.Text.Detail.Description"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/programguide_detail_title"
+                app:layout_constraintTop_toBottomOf="@id/programguide_detail_metadata"
+                tools:text="This is the description of the item.\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
