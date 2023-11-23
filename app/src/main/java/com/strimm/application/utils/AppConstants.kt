@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.strimm.application.model.ThemeData
 import com.strimm.application.prefstore.PreferenceKeys
+import kotlinx.coroutines.launch
 import java.io.IOException
 
 val Context.aquaintDataStore: DataStore<Preferences> by preferencesDataStore(PreferenceKeys.PREF_STORE_NAME)

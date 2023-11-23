@@ -55,20 +55,20 @@ class ProgramGuideItemView<T> : FrameLayout {
 
     private val titleView: TextView
     private val timingView: TextView
-    private val progressView: ProgressBar
+//    private val progressView: ProgressBar
 
     init {
         View.inflate(context, R.layout.programguide_item_program, this)
 
         titleView = findViewById(R.id.title)
         timingView = findViewById(R.id.programTiming)
-        progressView = findViewById(R.id.progress)
+//        progressView = findViewById(R.id.progress)
 
 //        if (Build.VERSION.SDK_INT > 29) {
 
-            progressView.setBackgroundColor(Color.GRAY)
-            progressView.progressTintList =
-                ColorStateList.valueOf(Color.parseColor(mainThemeData.primaryColor))
+//            progressView.setBackgroundColor(Color.GRAY)
+//            progressView.progressTintList =
+//                ColorStateList.valueOf(Color.parseColor(mainThemeData.primaryColor))
 //        } else {
 //            progressView.background.setColorFilter(
 //                Color.parseColor(mainThemeData.primaryColor),
@@ -133,7 +133,7 @@ class ProgramGuideItemView<T> : FrameLayout {
         if (displayProgress) {
             updateProgress(System.currentTimeMillis())
         } else {
-            progressView.visibility = View.GONE
+//            progressView.visibility = View.GONE
         }
 
         titleView.measure(
@@ -150,19 +150,19 @@ class ProgramGuideItemView<T> : FrameLayout {
     }
 
     private fun initProgress(width: Int) {
-        progressView.max = width
+//        progressView.max = width
     }
 
     fun updateProgress(now: Long) {
         schedule?.let {
             val hasEnded = now > it.endsAtMillis
-            if (it.isCurrentProgram.not()) {
-                progressView.visibility = View.GONE
-            } else {
-                progressView.visibility = View.VISIBLE
-                progressView.progress =
-                    ProgramGuideUtil.convertMillisToPixel(it.startsAtMillis, now)
-            }
+//            if (it.isCurrentProgram.not()) {
+//                progressView.visibility = View.GONE
+//            } else {
+//                progressView.visibility = View.VISIBLE
+//                progressView.progress =
+//                    ProgramGuideUtil.convertMillisToPixel(it.startsAtMillis, now)
+//            }
             this.isActivated = !hasEnded
         }
     }

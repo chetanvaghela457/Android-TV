@@ -35,4 +35,17 @@
     <string name="content_description_large_thumbnail">Program thumbnail</string>
     <string name="content_description_channel_logo">Channel logo</string>
     <string name="content_description_dropdown_icon">Dropdown icon</string>
+
+
+<!--    {-->
+<!--    "appName": "Strimm",-->
+<!--    "appSlug": "Strimm",-->
+<!--    "primaryColor": "#2DB9E7",-->
+<!--    "textSecondaryColor": "#CCCCCC",-->
+<!--    "email": "piyush@strimm.com",-->
+<!--    "privacy_link": "privacy_link",-->
+<!--    "channel_id": "channel_id",-->
+<!--    "username": "dnisternet2000@gmail.com",-->
+<!--    "password": "111111"-->
+<!--    }-->
 </resources>

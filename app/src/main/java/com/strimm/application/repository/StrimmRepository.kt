@@ -10,6 +10,9 @@ import com.strimm.application.R
 import com.strimm.application.model.CategoriesData
 import com.strimm.application.model.ChannelItem
 import com.strimm.application.model.LoginResponse
+import com.strimm.application.model.MeApiResponse
+import com.strimm.application.model.SearchResponse
+import com.strimm.application.model.SearchedData
 import com.strimm.application.model.ThemeData
 import com.strimm.application.model.VideoData
 import com.strimm.application.retrofit.StrimmApi
@@ -24,9 +27,12 @@ class StrimmRepository @Inject constructor(private val api: StrimmApi) {
     val channelsList: LiveData<ArrayList<ChannelItem>>
         get() = _channelsList
 
-    suspend fun getAllChannelsList(category_id: String): LiveData<ArrayList<ChannelItem>> {
+    suspend fun getAllChannelsList(
+        category_id: String,
+        userId: String
+    ): LiveData<ArrayList<ChannelItem>> {
 
-        val result = api.getAllChannelsList(0, 10, category_id)
+        val result = api.getAllChannelsList(userId,0, 10, category_id, )
 
         if (result.isSuccessful && result.body() != null) {
             _channelsList.postValue(result.body()!!.data)
@@ -43,13 +49,14 @@ class StrimmRepository @Inject constructor(private val api: StrimmApi) {
     suspend fun getVideosFromChannel(
         channelId: String,
         date: String,
-        token: String
+        token: String,
+        userId: String
     ): LiveData<VideoData> {
 
         val result = api.getVideosByChannel(
-            "Bearer $token",
+            "Bearer $token", userId,
             channelId,
-            date, 1, 10000, 1, TimeZone.getDefault().id
+            date, 1, 10000, 1, TimeZone.getDefault().id,
         )
 
         if (result.isSuccessful && result.body() != null) {
@@ -61,14 +68,36 @@ class StrimmRepository @Inject constructor(private val api: StrimmApi) {
     }
 
 
+    private val _searchData = MutableLiveData<List<SearchedData>>()
+    val searchData: LiveData<List<SearchedData>>
+        get() = _searchData
+
+    suspend fun getSearchedItem(
+        keyword: String, userId: String
+    ): LiveData<List<SearchedData>> {
+
+        val result = api.searchItem(
+            userId, keyword,
+            0, 10, 0, 10, TimeZone.getDefault().id,
+        )
+
+        if (result.isSuccessful && result.body() != null) {
+            Log.e("TAG", "getAllChannelsList: " + result.body().toJsonObject())
+            _searchData.postValue(result.body()!!.data)
+        }
+
+        return _searchData
+    }
+
+
     private val _categoriesData = MutableLiveData<CategoriesData>()
     val categoriesData: LiveData<CategoriesData>
         get() = _categoriesData
 
-    suspend fun getCategoriesList(token: String): LiveData<CategoriesData> {
+    suspend fun getCategoriesList(token: String, userId: String): LiveData<CategoriesData> {
 
         val result = api.getCategoriesList(
-            "Bearer $token",
+            "Bearer $token",userId,
             1
         )
 
@@ -99,6 +128,23 @@ class StrimmRepository @Inject constructor(private val api: StrimmApi) {
         return _loginResData
     }
 
+    private val _meResData = MutableLiveData<MeApiResponse>()
+    val meResData: LiveData<MeApiResponse>
+        get() = _meResData
+
+    suspend fun meApiCall(token: String): LiveData<MeApiResponse> {
+
+        val result = api.afterLoginMe(
+            "Bearer $token", "application/json"
+        )
+
+        if (result.isSuccessful && result.body() != null) {
+            Log.e("TAG", "getAllChannelsList: " + result.body().toJsonObject())
+            _meResData.postValue(result.body())
+        }
+
+        return _meResData
+    }
 
     private val _themeItem = MutableLiveData<ThemeData>()
     val themeItem: LiveData<ThemeData>

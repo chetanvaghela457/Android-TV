@@ -34,18 +34,35 @@ class LoginViewModel @Inject constructor(private val repository: StrimmRepositor
                 _showLoading.postValue(false)
                 if (it.data.access_token.toString().isNotEmpty()) {
 
+
                     viewModelScope.launch {
                         prefStore.savePreference(
                             PreferenceKeys.API_AUTH_TOKEN,
                             it.data.access_token
                         )
 
-                      /*  prefStore.savePreference(
-                            PreferenceKeys.IS_LOGGED_IN,
-                            true
-                        )*/
+                        repository.meApiCall(it.data.access_token).observeForever {
 
-                        _isLoginSuccess.postValue(true)
+                            viewModelScope.launch {
+
+                                prefStore.savePreference(
+                                    PreferenceKeys.USER_ID,
+                                    it.data.id
+                                )
+
+                                _isLoginSuccess.postValue(true)
+
+                            }
+
+                        }
+
+
+                        /*  prefStore.savePreference(
+                              PreferenceKeys.IS_LOGGED_IN,
+                              true
+                          )*/
+
+
                     }
 
 

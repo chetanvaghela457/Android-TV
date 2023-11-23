@@ -52,7 +52,7 @@ class ProgramGuideManager<T> {
     val listeners = mutableListOf<Listener>()
 
     private val channels = mutableListOf<ProgramGuideChannel>()
-    private val channelEntriesMap = mutableMapOf<String, List<ProgramGuideSchedule<T>>>()
+    val channelEntriesMap = mutableMapOf<String, List<ProgramGuideSchedule<T>>>()
 
     val channelCount get() = channels.size
 

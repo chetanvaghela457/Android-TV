@@ -57,6 +57,7 @@ import com.strimm.application.lib.util.ProgramGuideUtil
 import com.strimm.application.model.CategoriesItem
 import com.strimm.application.ui.adapters.CategoriesAdapter
 import com.strimm.application.ui.interfaces.OnCategoryItemClick
+import com.strimm.application.ui.interfaces.OnChannelsItemClick
 import com.strimm.application.ui.viewmodel.MainViewModel
 import com.strimm.application.utils.mainThemeData
 import org.threeten.bp.Instant
@@ -71,7 +72,8 @@ import kotlin.collections.ArrayList
 
 abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listener,
     ProgramGuideGridView.ChildFocusListener,
-    ProgramGuideGridView.ScheduleSelectionListener<T>, ProgramGuideHolder<T>, OnCategoryItemClick {
+    ProgramGuideGridView.ScheduleSelectionListener<T>, ProgramGuideHolder<T>, OnCategoryItemClick,
+    OnChannelsItemClick {
 
     companion object {
         private val HOUR_IN_MILLIS = TimeUnit.HOURS.toMillis(1)
@@ -390,6 +392,7 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
         val recyclerviewCategory = view.findViewById<RecyclerView>(R.id.recyclerviewCategory)
         val mainLogoHomeScreen = view.findViewById<ImageView>(R.id.programguide_detail_image)
 
+
         Glide.with(requireActivity()).load(R.raw.icon_image).into(mainLogoHomeScreen)
 
         val layoutMan =
@@ -449,7 +452,7 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
                     LinearLayoutManager.VERTICAL
                 )
             )
-            val adapter = ProgramGuideRowAdapter(it.context, this)
+            val adapter = ProgramGuideRowAdapter(it.context, this, this, mainViewModel)
             it.adapter = adapter
         }
         programGuideManager.listeners.add(this)
@@ -989,6 +992,8 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
                 return
             }
             val index = adapter.updateProgram(program)
+
+
             if (index == null) {
                 Log.w(TAG, "Program not updated, item not found in adapter.")
                 return
@@ -1002,6 +1007,9 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
                 )
                 return
             }
+
+            adapter.changeBackground(index)
+
             viewHolder.updateLayout()
         } else {
             Log.w(TAG, "Program not updated, no match found.")

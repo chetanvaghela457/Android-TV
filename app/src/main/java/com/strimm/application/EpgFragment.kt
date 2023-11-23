@@ -1,7 +1,9 @@
 package com.strimm.application
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -10,11 +12,20 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.Window
+import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.ExoPlayer
@@ -25,11 +36,15 @@ import com.google.android.exoplayer2.drm.DefaultDrmSessionManagerProvider
 import com.google.android.exoplayer2.drm.DrmSessionManagerProvider
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerControlView
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
+import com.google.android.exoplayer2.util.Util
+import com.google.gson.Gson
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -39,18 +54,25 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.utils.loadOrC
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.ui.DefaultPlayerUiController
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.ui.onFloatingButtonClick
+import com.strimm.application.extension.observeByLambda
 import com.strimm.application.lib.ProgramGuideFragment
 import com.strimm.application.lib.entity.ProgramGuideSchedule
 import com.strimm.application.lib.util.FixedLocalDateTime
 import com.strimm.application.model.CategoriesItem
 import com.strimm.application.model.ChannelItem
+import com.strimm.application.model.Video
 import com.strimm.application.model.VideoItem
+import com.strimm.application.prefstore.PreferenceKeys
+import com.strimm.application.ui.adapters.VideoSearchAdapter
+import com.strimm.application.ui.interfaces.OnSearchItemClick
 import com.strimm.application.utils.API_LOCAL_DATE_FORMAT
+import com.strimm.application.utils.DisplayMetricsHandler
 import com.strimm.application.utils.MySpannable
 import com.strimm.application.utils.convertTimeFormat
 import com.strimm.application.utils.format
 import com.strimm.application.utils.mainThemeData
 import com.strimm.application.utils.timeToMillis
+import com.strimm.application.utils.toJsonArray
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -61,6 +83,9 @@ import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZoneId
+import vimeoextractor.OnVimeoExtractionListener
+import vimeoextractor.VimeoExtractor
+import vimeoextractor.VimeoVideo
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -84,71 +109,122 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
     lateinit var youtubePlayerView: YouTubePlayerView
     lateinit var onFloatingButtonClick: onFloatingButtonClick
     lateinit var youTubePlayerMain: YouTubePlayer
+
+    val channelMap = mutableMapOf<String, List<ProgramGuideSchedule<VideoItem>>>()
 //    lateinit var recyclerviewCategory: RecyclerView
 
     var isYoutubeInitialized = false
     var channelsArray = ArrayList<ChannelItem>()
     var videosItemsArray = ArrayList<VideoItem>()
 
-    /* data class SimpleChannel(
-         override val id: String,
-         override val name: Spanned?,
-         override val imageUrl: String?
-     ) : ProgramGuideChannel*/
-
-    // You can put your own data in the program class
-    /*data class SimpleProgram(
-        val id: String,
-        val description: String,
-        val metadata: String
-    )*/
+    var isVideoPlaying = false
+    var isFullScreen = false
 
     override fun onScheduleClicked(programGuideSchedule: ProgramGuideSchedule<VideoItem>) {
         val innerSchedule = programGuideSchedule.program
 
+        val playerViewRelative = view?.findViewById<RelativeLayout>(R.id.playerViewRelative)!!
         exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
         exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
         youtubePlayerView = view?.findViewById<YouTubePlayerView>(R.id.youtube_player_view)!!
         progressBar = view?.findViewById<ProgressBar>(R.id.progressBar)!!
 
+        if (isVideoPlaying) {
 
-        if (programGuideSchedule.program != null) {
+            if (!isFullScreen) {
 
-            val durationTillNow =
-                ((System.currentTimeMillis() / 1000).toLong() - (programGuideSchedule.program.startDate.timeToMillis(
-                    programGuideSchedule.program.startDate
-                ) / 1000).toLong())
+                isFullScreen = true
+                val layoutParams = ConstraintLayout.LayoutParams(
+                    ConstraintLayout.LayoutParams.MATCH_PARENT,
+                    ConstraintLayout.LayoutParams.MATCH_PARENT
+                )
+
+                playerViewRelative.layoutParams = layoutParams
+            } else {
+
+                isFullScreen = false
+                val width = resources.getDimension(R.dimen.player_width)
+                val height = resources.getDimension(R.dimen.player_height)
+
+                val layoutParams = ConstraintLayout.LayoutParams(
+                    width.toInt(),
+                    height.toInt()
+                )
+                playerViewRelative.layoutParams = layoutParams
+            }
 
 
-            if (programGuideSchedule.program.providerName == "youtube") {
+        } else {
+
+            val width = resources.getDimension(R.dimen.player_width)
+            val height = resources.getDimension(R.dimen.player_height)
+
+            val layoutParams = ConstraintLayout.LayoutParams(
+                width.toInt(),
+                height.toInt()
+            )
+
+            playerViewRelative.layoutParams = layoutParams
+
+            if (programGuideSchedule.program != null) {
+
+                val durationTillNow =
+                    ((System.currentTimeMillis() / 1000).toLong() - (programGuideSchedule.program.startDate.timeToMillis(
+                        programGuideSchedule.program.startDate
+                    ) / 1000).toLong())
 
 
-                Handler(Looper.getMainLooper()).postDelayed({
+                if (programGuideSchedule.program.providerName == "youtube") {
 
-                    youtubePlayerView.visibility = View.VISIBLE
-                    exoPlayerView.visibility = View.GONE
-                    setupYoutubePlayer(
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        youtubePlayerView.visibility = View.VISIBLE
+                        exoPlayerView.visibility = View.GONE
+                        setupYoutubePlayer(
+                            programGuideSchedule.program.providerVideoId,
+                            durationTillNow.toFloat()
+                        )
+
+                    }, 300)
+
+                } else if (programGuideSchedule.program.providerName == "vimeo") {
+
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        youtubePlayerView.visibility = View.GONE
+                        exoPlayerView.visibility = View.VISIBLE
+
+                        vimeoVideoPlayer(programGuideSchedule.program.providerVideoId)
+                        /*setupYoutubePlayer(
+                            programGuideSchedule.program.providerVideoId,
+                            durationTillNow.toFloat()
+                        )*/
+
+                    }, 300)
+
+                } else {
+                    youtubePlayerView.visibility = View.GONE
+                    exoPlayerView.visibility = View.VISIBLE
+                    setupExoPlayer(
                         programGuideSchedule.program.providerVideoId,
                         durationTillNow.toFloat()
                     )
-
-                }, 300)
-
+                }
             } else {
-                youtubePlayerView.visibility = View.GONE
-                exoPlayerView.visibility = View.VISIBLE
-                setupExoPlayer(
-                    programGuideSchedule.program.providerVideoId,
-                    durationTillNow.toFloat()
-                )
-            }
-        } else {
 
-            youtubePlayerView.visibility = View.GONE
-            exoPlayerView.visibility = View.GONE
-            progressBar.visibility = View.GONE
+                youtubePlayerView.visibility = View.GONE
+                exoPlayerView.visibility = View.GONE
+                progressBar.visibility = View.GONE
+
+            }
+
+            updateProgram(programGuideSchedule.copy(displayTitle = programGuideSchedule.displayTitle/* + " [clicked]"*/))
 
         }
+
+
 //        if (innerSchedule == null) {
 //            // If this happens, then our data source gives partial info
 //            Log.w(TAG, "Unable to open schedule!")
@@ -160,64 +236,51 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
 //            Toast.makeText(context, "Open detail page", Toast.LENGTH_LONG).show()
 //        }
         // Example of how a program can be updated. You could also change the underlying program.
-        updateProgram(programGuideSchedule.copy(displayTitle = programGuideSchedule.displayTitle + " [clicked]"))
+
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onScheduleSelected(programGuideSchedule: ProgramGuideSchedule<VideoItem>?) {
+
+        isVideoPlaying = false
+        exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
+        exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
+        youtubePlayerView = view?.findViewById<YouTubePlayerView>(R.id.youtube_player_view)!!
+        progressBar = view?.findViewById<ProgressBar>(R.id.progressBar)!!
+
         val titleView = view?.findViewById<TextView>(R.id.programguide_detail_title)
         titleView?.setTextColor(Color.parseColor(mainThemeData.primaryColor))
         titleView?.text = programGuideSchedule?.displayTitle
         val metadataView = view?.findViewById<TextView>(R.id.programguide_detail_metadata)
+        val programguide_detail_channel_name =
+            view?.findViewById<TextView>(R.id.programguide_detail_channel_name)
+
+        programguide_detail_channel_name?.visibility = View.VISIBLE
+
+        if (programGuideSchedule?.channel?.name != null) {
+            programguide_detail_channel_name?.text =
+                "Playing Now on " + programGuideSchedule?.channel?.name
+        }
+
         metadataView?.setTextColor(Color.parseColor(mainThemeData.textSecondaryColor))
         metadataView?.text = programGuideSchedule?.program?.durationInDate
         descriptionView = view?.findViewById<TextView>(R.id.programguide_detail_description)!!
         descriptionView.text = programGuideSchedule?.program?.description
         descriptionView.setTextColor(Color.parseColor(mainThemeData.textSecondaryColor))
 
-//        makeTextViewResizable(descriptionView, 5, "View More", true)
+        val etSearch = view?.findViewById<TextView>(R.id.etSearch)
+        val etAbout = view?.findViewById<TextView>(R.id.etAbout)
 
-        exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
-        exoPlayerView = view?.findViewById<StyledPlayerView>(R.id.exoPlayerView)!!
-        youtubePlayerView = view?.findViewById<YouTubePlayerView>(R.id.youtube_player_view)!!
-        progressBar = view?.findViewById<ProgressBar>(R.id.progressBar)!!
+        etAbout?.setOnClickListener {
 
-
-        if (programGuideSchedule?.program != null) {
-
-            val durationTillNow =
-                ((System.currentTimeMillis() / 1000).toLong() - (programGuideSchedule.program.startDate.timeToMillis(
-                    programGuideSchedule.program.startDate
-                ) / 1000).toLong())
-
-
-            if (programGuideSchedule.program.providerName == "youtube") {
-
-
-                Handler(Looper.getMainLooper()).postDelayed({
-
-                    youtubePlayerView.visibility = View.VISIBLE
-                    exoPlayerView.visibility = View.GONE
-                    setupYoutubePlayer(
-                        programGuideSchedule.program.providerVideoId,
-                        durationTillNow.toFloat()
-                    )
-
-                }, 300)
-
-            } else {
-                youtubePlayerView.visibility = View.GONE
-                exoPlayerView.visibility = View.VISIBLE
-                setupExoPlayer(
-                    programGuideSchedule.program.providerVideoId,
-                    durationTillNow.toFloat()
-                )
+            if (programGuideSchedule?.channel != null) {
+                aboutDialog(programGuideSchedule.channel)
             }
-        } else {
 
-            youtubePlayerView.visibility = View.GONE
-            exoPlayerView.visibility = View.GONE
-            progressBar.visibility = View.GONE
+        }
+
+        etSearch?.setOnClickListener {
+            searchDialog()
 
         }
     }
@@ -293,8 +356,6 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                 if (durationStart < 0f) 0f else durationStart
             )
 
-//            youTubePlayerMain.seekTo(durationStart)
-
             progressBar.visibility = View.GONE
 
         } else {
@@ -313,6 +374,15 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                             youTubePlayer: YouTubePlayer,
                             state: PlayerConstants.PlayerState
                         ) {
+
+                            if (state.equals(PlayerConstants.PlayerState.PLAYING)) {
+                                isVideoPlaying = true
+                            } else if (state.equals(PlayerConstants.PlayerState.PAUSED)) {
+                                isVideoPlaying = false
+                            } else if (state.equals(PlayerConstants.PlayerState.ENDED)) {
+                                isVideoPlaying = false
+                            }
+
                             /*if (state.equals(PlayerConstants.PlayerState.ENDED)) {
                                 //When video playing ended, seek back to 0 and then pause video
                                 //Its purpose is to avoid displaying suggested related videos from youtube.
@@ -481,8 +551,17 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                                         videoItem.title,
                                         instantStartDate,
                                         instantEndDate,
+                                        channel,
                                         videoItem
                                     )
+
+//                                    val schedule = createSchedule(
+//                                        videoItem.id,
+//                                        videoItem.title,
+//                                        instantStartDate,
+//                                        instantEndDate,
+//                                        videoItem
+//                                    )
                                     scheduleList.add(schedule)
 
                                 }
@@ -523,6 +602,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         scheduleName: String,
         startTime: Instant,
         endTime: Instant,
+        channel: ChannelItem,
         videoItem: VideoItem
     ): ProgramGuideSchedule<VideoItem> {
 //        val id = Random.nextLong(100_000L)
@@ -532,6 +612,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
             endTime,
             true,
             scheduleName,
+            channel,
             videoItem
         )
     }
@@ -569,7 +650,6 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
 
                 Single.fromCallable {
 
-                    val channelMap = mutableMapOf<String, List<ProgramGuideSchedule<VideoItem>>>()
 
                     GlobalScope.launch(Dispatchers.Main) {
 
@@ -607,6 +687,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                                         videoItem.title,
                                         instantStartDate,
                                         instantEndDate,
+                                        channel,
                                         videoItem
                                     )
                                     scheduleList.add(schedule)
@@ -643,7 +724,201 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
 
     }
 
+    override fun channelsItemClick(
+        item: ProgramGuideSchedule<VideoItem>,
+        position: Int
+    ) {
+        if (item.channel != null) {
+            addToFavouriteDialog(item)
+        }
+    }
+
     fun setupExoPlayer(video_url: String, durationStart: Float) {
+
+        val build = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(32 * 1024, 64 * 1024, 1024, 1024).createDefaultLoadControl()
+
+        val extensionRendererMode =
+            DefaultRenderersFactory(requireContext()).setExtensionRendererMode(
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+            )
+//        factory.defaultRequestProperties.set("Referer", "https://gocast2.com/")
+        val build2 = TrackSelectionParameters.Builder(requireContext()).build()
+        mediaDataSourceFactory =
+            ExoPlayer.Builder(requireContext(), extensionRendererMode).setLoadControl(build)
+                .setMediaSourceFactory(createMediaSourceFactory())
+
+
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent(Util.getUserAgent(requireContext(), "YourAppName"))
+
+        val mediaItem = MediaItem.Builder()
+            .setMimeType("video/mp4")
+            .setUri(video_url)
+            .build()
+
+
+        val mediaSource = HlsMediaSource.Factory(httpDataSourceFactory)
+            .createMediaSource(mediaItem)
+
+
+        setRenderersFactory(mediaDataSourceFactory, false)
+        player = mediaDataSourceFactory.build()
+        player.trackSelectionParameters = build2
+
+        exoPlayerView.player = player
+        exoPlayerView.useController = true
+        exoPlayerView.requestFocus()
+        exoPlayerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+        exoPlayerView.controllerAutoShow = false
+        exoPlayerView.keepScreenOn = true
+        exoPlayerView.setShowSubtitleButton(true)
+//        player.setMediaSource(
+//            ProgressiveMediaSource.Factory(factory)
+//                .createMediaSource(MediaItem.fromUri(Uri.parse(video_url)))
+//        )
+
+
+        player.prepare(mediaSource)
+
+        player.playWhenReady = true
+        player.seekTo(durationStart.toLong())
+        player.addListener(object : Player.Listener {
+            @SuppressLint("WrongConstant")
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+                    Player.STATE_IDLE -> {
+                        isVideoPlaying = false
+                        // Player is in the idle state
+                    }
+
+                    Player.STATE_BUFFERING -> {
+                        // Player is buffering
+                    }
+
+                    Player.STATE_READY -> {
+                        progressBar.visibility = 8
+                        isVideoPlaying = true
+                        // Player is ready to play
+                    }
+
+                    Player.STATE_ENDED -> {
+                        isVideoPlaying = false
+                        // Player has ended playback
+                    }
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                player.stop()
+
+                mp4VideoPlayer(video_url)
+                Log.e("TAG", "onPlayerError: " + error.message)
+//                errorDialog()
+            }
+        }
+        )
+
+        exoPlayerView.controllerShowTimeoutMs = 3500
+        exoPlayerView.setControllerVisibilityListener(StyledPlayerControlView.VisibilityListener { i ->
+            if (i == 0) {
+                exoPlayerView.systemUiVisibility = 4871
+            } else if (i == 8) {
+//                toolbarPlayer.setVisibility(View.GONE)
+            }
+        })
+
+    }
+
+    fun mp4VideoPlayer(video_url: String) {
+        val build = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(32 * 1024, 64 * 1024, 1024, 1024).createDefaultLoadControl()
+
+        val extensionRendererMode =
+            DefaultRenderersFactory(requireContext()).setExtensionRendererMode(
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+            )
+//        factory.defaultRequestProperties.set("Referer", "https://gocast2.com/")
+        val build2 = TrackSelectionParameters.Builder(requireContext()).build()
+        mediaDataSourceFactory =
+            ExoPlayer.Builder(requireContext(), extensionRendererMode).setLoadControl(build)
+                .setMediaSourceFactory(createMediaSourceFactory())
+
+        val mediaItem = MediaItem.Builder()
+            .setMimeType("video/mp4")
+            .setUri(video_url)
+            .build()
+
+
+        setRenderersFactory(mediaDataSourceFactory, false)
+        player = mediaDataSourceFactory.build()
+        player.trackSelectionParameters = build2
+
+        exoPlayerView.player = player
+        exoPlayerView.useController = true
+        exoPlayerView.requestFocus()
+        exoPlayerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+        exoPlayerView.controllerAutoShow = false
+        exoPlayerView.keepScreenOn = true
+        exoPlayerView.setShowSubtitleButton(true)
+//        player.setMediaSource(
+//            ProgressiveMediaSource.Factory(factory)
+//                .createMediaSource(MediaItem.fromUri(Uri.parse(video_url)))
+//        )
+
+
+        player.setMediaItem(mediaItem)
+        player.prepare()
+
+        player.playWhenReady = true
+        player.seekTo(0)
+        player.addListener(object : Player.Listener {
+            @SuppressLint("WrongConstant")
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+                    Player.STATE_IDLE -> {
+                        isVideoPlaying = false
+                        // Player is in the idle state
+                    }
+
+                    Player.STATE_BUFFERING -> {
+                        // Player is buffering
+                    }
+
+                    Player.STATE_READY -> {
+                        progressBar.visibility = 8
+                        isVideoPlaying = true
+                        // Player is ready to play
+                    }
+
+                    Player.STATE_ENDED -> {
+                        isVideoPlaying = false
+                        // Player has ended playback
+                    }
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                player.stop()
+
+
+                Log.e("TAG", "onPlayerError: " + error.message)
+//                errorDialog()
+            }
+        }
+        )
+
+        exoPlayerView.controllerShowTimeoutMs = 3500
+        exoPlayerView.setControllerVisibilityListener(StyledPlayerControlView.VisibilityListener { i ->
+            if (i == 0) {
+                exoPlayerView.systemUiVisibility = 4871
+            } else if (i == 8) {
+//                toolbarPlayer.setVisibility(View.GONE)
+            }
+        })
+    }
+
+    fun vimeoVideoPlayer(videoId: String) {
 
         val build = DefaultLoadControl.Builder()
             .setBufferDurationsMs(32 * 1024, 64 * 1024, 1024, 1024).createDefaultLoadControl()
@@ -670,54 +945,20 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         exoPlayerView.controllerAutoShow = false
         exoPlayerView.keepScreenOn = true
         exoPlayerView.setShowSubtitleButton(true)
-//        player.setMediaSource(
-//            ProgressiveMediaSource.Factory(factory)
-//                .createMediaSource(MediaItem.fromUri(Uri.parse(video_url)))
-//        )
 
-        val mediaItem = MediaItem.Builder()
-            .setMimeType("video/mp4")
-            .setUri(video_url)
-            .build()
-
-        player.setMediaItem(mediaItem)
-        player.prepare()
-        player.playWhenReady = true
-        player.seekTo(durationStart.toLong())
-        player.addListener(object : Player.Listener {
-            @SuppressLint("WrongConstant")
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == 3) {
-                    progressBar.visibility = 8
-//                    contentLoaded = true
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                player.stop()
-                Log.e("TAG", "onPlayerError: " + error.message)
-//                errorDialog()
-            }
-        }
-        )
-
-        exoPlayerView.controllerShowTimeoutMs = 3500
-        exoPlayerView.setControllerVisibilityListener(StyledPlayerControlView.VisibilityListener { i ->
-            if (i == 0) {
-                exoPlayerView.systemUiVisibility = 4871
-            } else if (i == 8) {
-//                toolbarPlayer.setVisibility(View.GONE)
-            }
-        })
-
-
-        /*VimeoExtractor.getInstance()
+        VimeoExtractor.getInstance()
             .fetchVideoWithURL(
-                "https://vimeo.com/524933864",
+                "https://vimeo.com/" + videoId,
                 null,
                 object : OnVimeoExtractionListener {
                     override fun onSuccess(video: VimeoVideo) {
-                        val hdStream = video.streams["1080p"]
+
+
+                        Log.e(
+                            TAG,
+                            "onSuccess: hdStream ==>  " + video.streams.toList().toJsonArray()
+                        )
+                        val hdStream = video.streams.toList().get(0).second.toString()
 
                         android.os.Handler(Looper.getMainLooper()).postDelayed({
                             val mediaItem = MediaItem.Builder()
@@ -731,9 +972,27 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                             player.addListener(object : Player.Listener {
                                 @SuppressLint("WrongConstant")
                                 override fun onPlaybackStateChanged(playbackState: Int) {
-                                    if (playbackState == 3) {
-                                        progressBar.visibility = 8
-//                    contentLoaded = true
+
+                                    when (playbackState) {
+                                        Player.STATE_IDLE -> {
+                                            isVideoPlaying = false
+                                            // Player is in the idle state
+                                        }
+
+                                        Player.STATE_BUFFERING -> {
+                                            // Player is buffering
+                                        }
+
+                                        Player.STATE_READY -> {
+                                            progressBar.visibility = 8
+                                            isVideoPlaying = true
+                                            // Player is ready to play
+                                        }
+
+                                        Player.STATE_ENDED -> {
+                                            isVideoPlaying = false
+                                            // Player has ended playback
+                                        }
                                     }
                                 }
 
@@ -751,71 +1010,16 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                     override fun onFailure(throwable: Throwable) {
                         //Error handling here
                     }
-                })*/
+                })
 
-
-        /*val extractor: YouTubeExtractor = YouTubeExtractor.create()
-        mExtractor.extract("9d8wWcJLnFI").enqueue(object : Callback<YouTubeExtractionResult?>() {
-            fun onResponse(
-                call: Call<YouTubeExtractionResult?>?,
-                response: Response<YouTubeExtractionResult?>?
-            ) {
-                val hdUri: Uri = result.getHd1080VideoUri()
-                //See the sample for more
+        exoPlayerView.controllerShowTimeoutMs = 3500
+        exoPlayerView.setControllerVisibilityListener(StyledPlayerControlView.VisibilityListener { i ->
+            if (i == 0) {
+                exoPlayerView.systemUiVisibility = 4871
+            } else if (i == 8) {
+//                toolbarPlayer.setVisibility(View.GONE)
             }
-
-            fun onFailure(call: Call<YouTubeExtractionResult?>?, t: Throwable) {
-                t.printStackTrace()
-                //Alert your user!
-            }
-        })*/
-
-
-//        val youtubeLink = "https://youtu.be/tUesv5u5bvA"
-//
-//        object : YouTubeExtractor(requireContext()) {
-//            override fun onExtractionComplete(ytFiles: SparseArray<YtFile>?, vMeta: VideoMeta?) {
-//                if (ytFiles != null) {
-//
-//                    if (vMeta != null) {
-//                        Log.e(TAG, "onExtractionComplete: "+vMeta.channelId )
-//                        Log.e(TAG, "onExtractionComplete: "+vMeta.hqImageUrl )
-//                        Log.e(TAG, "onExtractionComplete: "+vMeta.videoId )
-//                        Log.e(TAG, "onExtractionComplete: "+vMeta.videoLength )
-//                        Log.e(TAG, "onExtractionComplete: "+vMeta.title )
-//                    }
-//
-//                    val itag = 22
-//                    val downloadUrl: String = ytFiles[itag].getUrl()
-//
-//                    val mediaItem = MediaItem.Builder()
-//                        .setMimeType("video/mp4")
-//                        .setUri(downloadUrl)
-//                        .build()
-//
-//                    player.setMediaItem(mediaItem)
-//                    player.prepare()
-//                    player.playWhenReady = true
-//                    player.addListener(object : Player.Listener {
-//                        @SuppressLint("WrongConstant")
-//                        override fun onPlaybackStateChanged(playbackState: Int) {
-//                            if (playbackState == 3) {
-//                                progressBar.visibility = 8
-////                    contentLoaded = true
-//                            }
-//                        }
-//
-//                        override fun onPlayerError(error: PlaybackException) {
-//                            player.stop()
-//                            Log.e("TAG", "onPlayerError: "+error.message )
-////                errorDialog()
-//                        }
-//                    }
-//                    )
-//                }
-//            }
-//        }.extract(Objects.requireNonNull(youtubeLink).toString(),true,true)
-
+        })
 
     }
 
@@ -833,6 +1037,248 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         return DefaultMediaSourceFactory(requireContext()).setDrmSessionManagerProvider(
             defaultDrmSessionManagerProvider as DrmSessionManagerProvider
         )
+    }
+
+    fun aboutDialog(channelItem: ChannelItem) {
+
+        val dialog = Dialog(requireContext())
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.about_layout)
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val mainAboutConstraint = dialog.findViewById<ConstraintLayout>(R.id.mainAboutConstraint)
+        val channelNameTxt = dialog.findViewById<TextView>(R.id.channelNameTxt)
+        val channelDescTxt = dialog.findViewById<TextView>(R.id.channelDescTxt)
+        channelNameTxt.text = channelItem.name
+        channelDescTxt.text = channelItem.name
+
+        mainAboutConstraint.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        val window = dialog.window
+        window!!.setGravity(Gravity.CENTER)
+        window.setLayout(
+            DisplayMetricsHandler.getScreenWidth().toInt(),
+            DisplayMetricsHandler.getScreenHeight().toInt()
+        )
+
+        if (!dialog.isShowing) dialog.show()
+    }
+
+
+    fun addToFavouriteDialog(channelItem: ProgramGuideSchedule<VideoItem>) {
+
+        val dialog = Dialog(requireContext())
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.add_favourite_play_dialog_layout)
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val mainAboutConstraint = dialog.findViewById<ConstraintLayout>(R.id.mainAboutConstraint)
+        val addRemoveFav = dialog.findViewById<TextView>(R.id.addRemoveFav)
+        val playChannel = dialog.findViewById<TextView>(R.id.playChannel)
+        val cancelTxt = dialog.findViewById<TextView>(R.id.cancelTxt)
+        val channelNameTxt = dialog.findViewById<TextView>(R.id.channelNameTxt)
+        channelNameTxt.text = channelItem.channel!!.name
+
+        if (mainViewModel.getFavouriteData().contains(channelItem.channel.id)) {
+
+            addRemoveFav.text = "Remove From Favourite"
+
+        } else {
+
+            addRemoveFav.text = "Add To Favourite"
+
+        }
+
+        mainAboutConstraint.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        cancelTxt.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        addRemoveFav.setOnClickListener {
+
+            dialog.dismiss()
+
+            val array = mainViewModel.getFavouriteData()
+
+            if (mainViewModel.getFavouriteData().contains(channelItem.channel.id)) {
+
+                array.remove(channelItem.channel.id)
+
+                lifecycleScope.launch {
+                    mainViewModel.prefStore.savePreference(
+                        PreferenceKeys.FAVOURITE_DATA,
+                        Gson().toJson(array)
+                    )
+                }
+
+            } else {
+
+                array.add(channelItem.channel.id)
+
+                lifecycleScope.launch {
+                    mainViewModel.prefStore.savePreference(
+                        PreferenceKeys.FAVOURITE_DATA,
+                        Gson().toJson(array)
+                    )
+                }
+
+            }
+
+
+        }
+
+        playChannel.setOnClickListener {
+            if (channelItem.program != null) {
+
+                val durationTillNow =
+                    ((System.currentTimeMillis() / 1000).toLong() - (channelItem.program.startDate.toString()
+                        .timeToMillis(
+                            channelItem.program.startDate.toString()
+                        ) / 1000).toLong())
+
+
+                if (channelItem.program.providerName == "youtube") {
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        youtubePlayerView.visibility = View.VISIBLE
+                        exoPlayerView.visibility = View.GONE
+                        setupYoutubePlayer(
+                            channelItem.program.providerVideoId,
+                            durationTillNow.toFloat()
+                        )
+
+                    }, 300)
+
+                } else if (channelMap[channelItem.id]!![0].program?.providerName == "vimeo") {
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        youtubePlayerView.visibility = View.GONE
+                        exoPlayerView.visibility = View.VISIBLE
+
+                        vimeoVideoPlayer(channelItem.program.providerVideoId.toString())
+
+                    }, 300)
+
+                } else {
+                    youtubePlayerView.visibility = View.GONE
+                    exoPlayerView.visibility = View.VISIBLE
+                    setupExoPlayer(
+                        channelItem.program.providerVideoId.toString(),
+                        durationTillNow.toFloat()
+                    )
+                }
+            } else {
+
+                youtubePlayerView.visibility = View.GONE
+                exoPlayerView.visibility = View.GONE
+                progressBar.visibility = View.GONE
+
+            }
+            dialog.dismiss()
+        }
+
+        val window = dialog.window
+        window!!.setGravity(Gravity.CENTER)
+        window.setLayout(
+            DisplayMetricsHandler.getScreenWidth().toInt(),
+            DisplayMetricsHandler.getScreenHeight().toInt()
+        )
+
+        if (!dialog.isShowing) dialog.show()
+    }
+
+
+    fun searchDialog() {
+
+        val dialog = Dialog(requireContext())
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.search_layout)
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val etSearch = dialog.findViewById<EditText>(R.id.etSearch)
+        val mainAboutConstraint = dialog.findViewById<ConstraintLayout>(R.id.mainAboutConstraint)
+        val recyclerviewSearch = dialog.findViewById<RecyclerView>(R.id.recyclerviewSearch)
+
+        recyclerviewSearch.layoutManager =
+            LinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
+
+
+        etSearch.doAfterTextChanged {
+
+            mainViewModel.getSearchedList(it.toString()).observeByLambda(viewLifecycleOwner) {
+
+                val adapter = VideoSearchAdapter(
+                    requireActivity(), object : OnSearchItemClick {
+                        override fun videoItemClick(item: Video, position: Int) {
+                            dialog.dismiss()
+
+                            if (item.providerName == "youtube") {
+
+                                Handler(Looper.getMainLooper()).postDelayed({
+
+                                    youtubePlayerView.visibility = View.VISIBLE
+                                    exoPlayerView.visibility = View.GONE
+                                    setupYoutubePlayer(
+                                        item.ProviderVideoId,
+                                        0f
+                                    )
+
+                                }, 300)
+
+                            } else if (item.providerName == "vimeo") {
+
+
+                                Handler(Looper.getMainLooper()).postDelayed({
+
+                                    youtubePlayerView.visibility = View.GONE
+                                    exoPlayerView.visibility = View.VISIBLE
+
+                                    vimeoVideoPlayer(item.ProviderVideoId)
+
+                                }, 300)
+
+                            } else {
+                                youtubePlayerView.visibility = View.GONE
+                                exoPlayerView.visibility = View.VISIBLE
+                                setupExoPlayer(
+                                    item.ProviderVideoId,
+                                    0f
+                                )
+                            }
+
+
+                        }
+                    },
+                    it.get(0).videos as ArrayList<Video>
+                )
+
+                recyclerviewSearch.adapter = adapter
+            }
+
+        }
+
+        mainAboutConstraint.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        val window = dialog.window
+        window!!.setGravity(Gravity.CENTER)
+        window.setLayout(
+            DisplayMetricsHandler.getScreenWidth().toInt(),
+            DisplayMetricsHandler.getScreenHeight().toInt()
+        )
+
+        if (!dialog.isShowing) dialog.show()
     }
 
 }

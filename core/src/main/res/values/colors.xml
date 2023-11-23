@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ayp_red">#E50914</color>
+    <color name="ayp_red">#2DB9E7</color>
     <color name="ayp_item_selected">#90FFFFFF</color>
     <color name="ayp_drop_shadow">#66000000</color>
 

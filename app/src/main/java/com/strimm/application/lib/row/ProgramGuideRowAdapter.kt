@@ -22,22 +22,30 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.strimm.application.R
 import com.strimm.application.lib.ProgramGuideHolder
 import com.strimm.application.lib.ProgramGuideListAdapter
 import com.strimm.application.lib.ProgramGuideManager
-import com.strimm.application.R
 import com.strimm.application.lib.entity.ProgramGuideChannel
 import com.strimm.application.lib.entity.ProgramGuideSchedule
+import com.strimm.application.model.VideoItem
+import com.strimm.application.ui.interfaces.OnChannelsItemClick
+import com.strimm.application.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.util.*
 
 /**
  * Adapts the [ProgramGuideListAdapter] list to the body of the program guide table.
  */
 internal class ProgramGuideRowAdapter(
-    private val context: Context,
-    private val programGuideHolder: ProgramGuideHolder<*>
+    private var context: Context,
+    private val programGuideHolder: ProgramGuideHolder<*>,
+    private val onChannelsItemClick: OnChannelsItemClick,
+    private val mainViewModel: MainViewModel
 ) :
     RecyclerView.Adapter<ProgramGuideRowAdapter.ProgramRowViewHolder>(),
     ProgramGuideManager.Listener {
@@ -51,8 +59,10 @@ internal class ProgramGuideRowAdapter(
             )
         }
 
+
     companion object {
         private val TAG: String = ProgramGuideRowAdapter::class.java.name
+        private var selectedPosition = RecyclerView.NO_POSITION
     }
 
     init {
@@ -91,6 +101,43 @@ internal class ProgramGuideRowAdapter(
 
     override fun onBindViewHolder(holder: ProgramRowViewHolder, position: Int) {
         holder.onBind(position, programManager, programListAdapters, programGuideHolder)
+
+        holder.channelContainer.setOnClickListener {
+
+//            if (programGuideHolder.programGuideManager.getCurrentProgram(
+//                    programManager.getChannel(
+//                        position
+//                    )?.id
+//                ) != null
+//            ) {
+
+            onChannelsItemClick.channelsItemClick(
+                programManager.getScheduleForChannelIdAndIndex(
+                    programManager.getChannel(
+                        position
+                    )?.id.toString(), programManager.channelEntriesMap[programManager.getChannel(
+                        position
+                    )?.id.toString()]!!.size - 1
+                ) as ProgramGuideSchedule<VideoItem>,
+                position
+            )
+
+//            }
+
+            changeBackground(position)
+        }
+
+        for (data in mainViewModel.getFavouriteData()) {
+
+            if (data == programGuideHolder.programGuideManager.getChannel(position)!!.id) {
+
+                holder.channelLogoView.setBackgroundResource(R.drawable.programguide_star)
+
+            }
+
+        }
+
+
     }
 
 
@@ -113,17 +160,17 @@ internal class ProgramGuideRowAdapter(
 
         private val container: ViewGroup = itemView as ViewGroup
         private val rowGridView: ProgramGuideRowGridView = container.findViewById(R.id.row)
-
-        private val channelNameView: TextView = container.findViewById(R.id.programguide_channel_name)
-//        private val channelLogoView: ImageView = container.findViewById(R.id.programguide_channel_logo)
+        val channelContainer =
+            container.findViewById<ViewGroup>(R.id.programguide_channel_container)
+        private val channelNameView: TextView =
+            container.findViewById(R.id.programguide_channel_name)
+        val channelLogoView: ImageView = container.findViewById(R.id.programguide_channel_logo)
 
         init {
-            val channelContainer =
-                container.findViewById<ViewGroup>(R.id.programguide_channel_container)
+
             channelContainer.viewTreeObserver.addOnGlobalFocusChangeListener { _, _ ->
                 channelContainer.isActivated = rowGridView.hasFocus()
-
-
+                channelContainer.isFocusable = true
 
             }
         }
@@ -137,14 +184,17 @@ internal class ProgramGuideRowAdapter(
             onBindChannel(programManager.getChannel(position))
             rowGridView.swapAdapter(programListAdapters[position], true)
 
-//            rowGridView.scrollToPosition(0);
-//            if (rowGridView.findViewHolderForAdapterPosition(0) != null) {
-//                rowGridView.findViewHolderForAdapterPosition(0)!!.itemView.requestFocus()
-//            }
+            if (selectedPosition == position) {
+                channelContainer.setBackgroundResource(R.drawable.bottom_bg)
+            } else {
+                channelContainer.setBackgroundResource(R.drawable.channel_bg)
+            }
 
             rowGridView.setProgramGuideFragment(programGuideHolder)
             rowGridView.setChannel(programManager.getChannel(position)!!)
             rowGridView.resetScroll(programGuideHolder.getTimelineRowScrollOffset())
+
+
         }
 
         private fun onBindChannel(channel: ProgramGuideChannel?) {
@@ -153,16 +203,7 @@ internal class ProgramGuideRowAdapter(
 //                channelLogoView.visibility = View.GONE
                 return
             }
-            /*val imageUrl = channel.imageUrl
-            if (imageUrl == null) {
-                channelLogoView.visibility = View.GONE
-            } else {
-                Glide.with(channelLogoView)
-                    .load(imageUrl)
-                    .fitCenter()
-                    .into(channelLogoView)
-                channelLogoView.visibility = View.VISIBLE
-            }*/
+
             channelNameView.text = channel.name
             channelNameView.visibility = View.VISIBLE
         }
@@ -170,9 +211,18 @@ internal class ProgramGuideRowAdapter(
         internal fun updateLayout() {
             rowGridView.post {
                 rowGridView.updateChildVisibleArea()
-            }
+//                channelContainer.setBackgroundColor(context.resources.getColor(R.color.skyblue))
 
-//            channelNameView.setBackgroundResource(R.drawable.programguide_bottom_bg)
+            }
         }
+
+
+    }
+
+    fun changeBackground(position: Int) {
+
+        selectedPosition = position
+        notifyDataSetChanged()
+
     }
 }

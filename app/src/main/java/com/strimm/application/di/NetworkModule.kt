@@ -35,7 +35,8 @@ class NetworkModule {
             .addInterceptor(loggingInterceptor)
             .build()
 
-        val retrofit = Retrofit.Builder().baseUrl("https://services-api.strimm.com/api/v1/services/mobile/")
+        val retrofit = Retrofit.Builder().baseUrl("https://services-api-stage.strimm.com/api/v1/services/mobile/")
+//        val retrofit = Retrofit.Builder().baseUrl("https://services-api.strimm.com/api/v1/services/mobile/")
             .addConverterFactory(ScalarsConverterFactory.create()).client(clientBuilder)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

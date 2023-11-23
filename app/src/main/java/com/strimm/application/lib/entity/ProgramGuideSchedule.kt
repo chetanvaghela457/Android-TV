@@ -17,6 +17,7 @@
 package com.strimm.application.lib.entity
 
 import com.strimm.application.lib.util.ProgramGuideUtil
+import com.strimm.application.model.ChannelItem
 import org.threeten.bp.Instant
 
 /**
@@ -35,6 +36,7 @@ data class ProgramGuideSchedule<T>(
     val originalTimes: OriginalTimes,
     val isClickable: Boolean,
     val displayTitle: String?,
+    val channel: ChannelItem?,
     val program: T?
 ) {
 
@@ -58,6 +60,7 @@ data class ProgramGuideSchedule<T>(
                 OriginalTimes(from, to),
                 false,
                 null,
+                null,
                 null
             )
         }
@@ -68,6 +71,7 @@ data class ProgramGuideSchedule<T>(
             endsAt: Instant,
             isClickable: Boolean,
             displayTitle: String?,
+            channel: ChannelItem?,
             program: T
         ): ProgramGuideSchedule<T> {
             return ProgramGuideSchedule(
@@ -77,6 +81,7 @@ data class ProgramGuideSchedule<T>(
                 OriginalTimes(startsAt.toEpochMilli(), endsAt.toEpochMilli()),
                 isClickable,
                 displayTitle,
+                channel,
                 program
             )
         }

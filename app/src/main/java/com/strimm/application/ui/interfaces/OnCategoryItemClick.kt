@@ -16,8 +16,25 @@
 
 package com.strimm.application.ui.interfaces
 
+import com.strimm.application.lib.entity.ProgramGuideSchedule
 import com.strimm.application.model.CategoriesItem
+import com.strimm.application.model.Video
+import com.strimm.application.model.VideoItem
+
 
 interface OnCategoryItemClick {
-    fun categoryItemClick(item:CategoriesItem,position:Int)
+    fun categoryItemClick(item: CategoriesItem, position: Int)
+}
+
+
+interface OnChannelsItemClick {
+    fun channelsItemClick(
+        item: ProgramGuideSchedule<VideoItem>,
+        position: Int
+    )
+}
+
+
+interface OnSearchItemClick {
+    fun videoItemClick(item: Video, position: Int)
 }

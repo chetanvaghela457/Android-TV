@@ -47,10 +47,10 @@
         tools:listitem="@layout/category_item" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainConstraintBgColor"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_margin="10dp"
-        android:id="@+id/mainConstraintBgColor"
         android:background="@drawable/bottom_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -247,9 +247,10 @@
     </RelativeLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/nestedScrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="@+id/playerViewRelative"
+        app:layout_constraintBottom_toTopOf="@+id/clickOkToFullScreen"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/playerViewRelative"
         app:layout_constraintTop_toTopOf="@+id/playerViewRelative">
@@ -258,10 +259,52 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <TextView
+                android:id="@+id/etSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/button_bg"
+                android:drawableLeft="@drawable/search_24"
+                android:drawablePadding="10dp"
+                android:drawableTint="@color/white"
+                android:paddingStart="@dimen/_10sdp"
+                android:paddingTop="@dimen/_3sdp"
+                android:paddingEnd="@dimen/_10sdp"
+                android:paddingBottom="@dimen/_3sdp"
+                android:singleLine="true"
+                android:text="Search"
+                android:textColor="@color/white"
+                android:textColorHighlight="@color/white"
+                android:textColorHint="@color/white"
+                android:textSize="@dimen/_9ssp"
+                app:layout_constraintEnd_toStartOf="@+id/etAbout"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/etAbout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/button_bg"
+                android:paddingStart="@dimen/_20sdp"
+                android:paddingTop="@dimen/_3sdp"
+                android:paddingEnd="@dimen/_20sdp"
+                android:paddingBottom="@dimen/_3sdp"
+                android:singleLine="true"
+                android:text="About"
+                android:textColor="@color/white"
+                android:textColorHighlight="@color/white"
+                android:textColorHint="@color/white"
+                android:textSize="@dimen/_9ssp"
+                app:layout_constraintStart_toEndOf="@+id/etSearch"
+                app:layout_constraintTop_toTopOf="parent" />
+
             <ImageView
                 android:id="@+id/programguide_detail_image"
                 android:layout_width="@dimen/_50sdp"
-                android:layout_height="@dimen/_50sdp"
+                android:layout_height="@dimen/_35sdp"
                 android:layout_marginEnd="@dimen/_10sdp"
                 android:src="@drawable/srtimm_logo"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -272,10 +315,23 @@
                 style="@style/ProgramGuide.Text.Detail.Title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
                 android:gravity="start"
                 app:layout_constraintEnd_toStartOf="@+id/programguide_detail_image"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/programguide_detail_channel_name"
+                tools:text="NPO Politiek dfadjfha jka kjhfd adjkfhddfksdf" />
+
+            <TextView
+                android:id="@+id/programguide_detail_channel_name"
+                style="@style/ProgramGuide.Text.Detail.SemiTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:visibility="invisible"
+                app:layout_constraintEnd_toStartOf="@+id/programguide_detail_image"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/etSearch"
                 tools:text="NPO Politiek dfadjfha jka kjhfd adjkfhddfksdf" />
 
             <TextView
@@ -304,4 +360,13 @@
     </androidx.core.widget.NestedScrollView>
 
 
+    <TextView
+        android:id="@+id/clickOkToFullScreen"
+        style="@style/ProgramGuide.Text.Detail.SemiTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="start"
+        app:layout_constraintBottom_toBottomOf="@+id/playerViewRelative"
+        app:layout_constraintStart_toEndOf="@+id/playerViewRelative"
+        tools:text="Click [OK] to go full screen" />
 </androidx.constraintlayout.widget.ConstraintLayout>
