@@ -46,10 +46,11 @@
                 android:layout_gravity="center"
                 android:layout_margin="5dp"
                 android:layout_weight="1"
-                android:focusable="true"
-                android:clickable="true"
-                android:focusableInTouchMode="true"
                 android:background="@drawable/dialog_stroke_button_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:focusedByDefault="true"
                 android:gravity="center"
                 android:text="Add To Favourite"
                 android:textSize="@dimen/_10ssp" />
@@ -62,10 +63,10 @@
                 android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/dialog_stroke_button_bg"
-                android:gravity="center"
-                android:focusable="true"
                 android:clickable="true"
+                android:focusable="true"
                 android:focusableInTouchMode="true"
+                android:gravity="center"
                 android:text="Play Channel"
                 android:textSize="@dimen/_10ssp" />
 
@@ -78,10 +79,10 @@
                 android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/dialog_stroke_button_bg"
-                android:gravity="center"
-                android:focusable="true"
                 android:clickable="true"
+                android:focusable="true"
                 android:focusableInTouchMode="true"
+                android:gravity="center"
                 android:text="Cancel"
                 android:textSize="@dimen/_10ssp" />
 

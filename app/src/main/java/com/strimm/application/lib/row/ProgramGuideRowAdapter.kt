@@ -111,31 +111,58 @@ internal class ProgramGuideRowAdapter(
 //                ) != null
 //            ) {
 
-            onChannelsItemClick.channelsItemClick(
-                programManager.getScheduleForChannelIdAndIndex(
+            if (programManager.channelEntriesMap.getValue(
                     programManager.getChannel(
                         position
-                    )?.id.toString(), programManager.channelEntriesMap[programManager.getChannel(
-                        position
-                    )?.id.toString()]!!.size - 1
-                ) as ProgramGuideSchedule<VideoItem>,
-                position
-            )
+                    )?.id.toString()
+                ).isNotEmpty()
+            ) {
+
+                onChannelsItemClick.channelsItemClick(
+                    programManager.getScheduleForChannelIdAndIndex(
+                        programManager.getChannel(
+                            position
+                        )?.id.toString(), 1
+                    ) as ProgramGuideSchedule<VideoItem>,
+                    position,
+                ) {
+
+                    if (it) {
+
+                        holder.channelLogoView.setBackgroundResource(R.drawable.programguide_star)
+                    } else {
+
+
+                        holder.channelLogoView.setBackgroundResource(R.drawable.unfill_star)
+                    }
+                    notifyDataSetChanged()
+
+                }
+
+            }
+
 
 //            }
 
             changeBackground(position)
         }
 
-        for (data in mainViewModel.getFavouriteData()) {
+        if (mainViewModel.getFavouriteData()
+                .contains(programGuideHolder.programGuideManager.getChannel(position)!!.id)
+        ) {
 
-            if (data == programGuideHolder.programGuideManager.getChannel(position)!!.id) {
+            holder.channelLogoView.setBackgroundResource(R.drawable.programguide_star)
+        } else {
 
-                holder.channelLogoView.setBackgroundResource(R.drawable.programguide_star)
 
-            }
-
+            holder.channelLogoView.setBackgroundResource(R.drawable.unfill_star)
         }
+
+        /* for (data in ) {
+
+
+
+         }*/
 
 
     }
@@ -185,7 +212,7 @@ internal class ProgramGuideRowAdapter(
             rowGridView.swapAdapter(programListAdapters[position], true)
 
             if (selectedPosition == position) {
-                channelContainer.setBackgroundResource(R.drawable.bottom_bg)
+                channelContainer.setBackgroundResource(R.drawable.channel_selected_bg)
             } else {
                 channelContainer.setBackgroundResource(R.drawable.channel_bg)
             }

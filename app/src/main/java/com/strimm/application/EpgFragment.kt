@@ -273,10 +273,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
 
         etAbout?.setOnClickListener {
 
-            if (programGuideSchedule?.channel != null) {
-                aboutDialog(programGuideSchedule.channel)
-            }
-
+            aboutDialog()
         }
 
         etSearch?.setOnClickListener {
@@ -726,10 +723,11 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
 
     override fun channelsItemClick(
         item: ProgramGuideSchedule<VideoItem>,
-        position: Int
+        position: Int,
+        onFavClick: (added: Boolean) -> Unit
     ) {
         if (item.channel != null) {
-            addToFavouriteDialog(item)
+            addToFavouriteDialog(item,onFavClick)
         }
     }
 
@@ -1039,7 +1037,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         )
     }
 
-    fun aboutDialog(channelItem: ChannelItem) {
+    fun aboutDialog() {
 
         val dialog = Dialog(requireContext())
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -1050,11 +1048,19 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         val mainAboutConstraint = dialog.findViewById<ConstraintLayout>(R.id.mainAboutConstraint)
         val channelNameTxt = dialog.findViewById<TextView>(R.id.channelNameTxt)
         val channelDescTxt = dialog.findViewById<TextView>(R.id.channelDescTxt)
-        channelNameTxt.text = channelItem.name
-        channelDescTxt.text = channelItem.name
+        channelNameTxt.text = mainThemeData.appName
+        channelDescTxt.text = mainThemeData.appSlug
 
         mainAboutConstraint.setOnClickListener {
             dialog.dismiss()
+        }
+
+        val dialogCancel = dialog.findViewById<TextView>(R.id.dialogCancel)
+
+        dialogCancel.setOnClickListener {
+
+            dialog.dismiss()
+
         }
 
         val window = dialog.window
@@ -1068,7 +1074,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
     }
 
 
-    fun addToFavouriteDialog(channelItem: ProgramGuideSchedule<VideoItem>) {
+    fun addToFavouriteDialog(channelItem: ProgramGuideSchedule<VideoItem>,onFavClick: (added: Boolean) -> Unit) {
 
         val dialog = Dialog(requireContext())
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -1102,7 +1108,6 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         }
 
         addRemoveFav.setOnClickListener {
-
             dialog.dismiss()
 
             val array = mainViewModel.getFavouriteData()
@@ -1118,6 +1123,7 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                     )
                 }
 
+                onFavClick(false)
             } else {
 
                 array.add(channelItem.channel.id)
@@ -1129,7 +1135,11 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
                     )
                 }
 
+                onFavClick(true)
+
             }
+
+
 
 
         }
@@ -1208,7 +1218,13 @@ class EpgFragment : ProgramGuideFragment<VideoItem>(), onFloatingButtonClick {
         val etSearch = dialog.findViewById<EditText>(R.id.etSearch)
         val mainAboutConstraint = dialog.findViewById<ConstraintLayout>(R.id.mainAboutConstraint)
         val recyclerviewSearch = dialog.findViewById<RecyclerView>(R.id.recyclerviewSearch)
+        val dialogCancel = dialog.findViewById<TextView>(R.id.dialogCancel)
 
+        dialogCancel.setOnClickListener {
+
+            dialog.dismiss()
+
+        }
         recyclerviewSearch.layoutManager =
             LinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
 

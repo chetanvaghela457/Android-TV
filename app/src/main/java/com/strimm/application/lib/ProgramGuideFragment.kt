@@ -546,7 +546,7 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
         programGuideGrid.let { grid ->
             val n = grid.childCount
 //            grid.requestFocus()
-            grid.getChildAt(n - 1).requestFocus()
+            grid.getChildAt(0).requestFocus()
             while (i < n) {
                 grid.getChildAt(i).findViewById<View>(R.id.row).scrollBy(dx, 0)
                 ++i
@@ -821,7 +821,9 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
             State.Content -> {
                 alpha = 1f
                 contentAnimator?.displayedChild = 2
-                timeRow?.findViewById<RecyclerView>(R.id.row)?.getChildAt(0)?.requestFocus()
+
+
+//                timeRow?.findViewById<RecyclerView>(R.id.row)?.getChildAt(0)?.requestFocus()
 //                programGuideGrid.getChildAt(0).findViewById<RecyclerView>(R.id.row).getChildAt(0).requestFocus()
             }
 
@@ -973,6 +975,17 @@ abstract class ProgramGuideFragment<T> : Fragment(), ProgramGuideManager.Listene
             programGuideGrid.smoothScrollToPosition(index)
             autoScrollToBestProgramme(useTimeOfDayFilter = false, specificChannelId = channelId)
         }
+    }
+
+
+    fun focusFirstItem() {
+
+        val adapter = programGuideGrid.adapter as? ProgramGuideRowAdapter
+        if (adapter == null) {
+            Log.w(TAG, "Program not updated, adapter not found or has incorrect type.")
+            return
+        }
+
     }
 
     /**

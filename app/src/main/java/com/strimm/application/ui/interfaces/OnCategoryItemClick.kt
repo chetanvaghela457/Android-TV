@@ -30,7 +30,8 @@ interface OnCategoryItemClick {
 interface OnChannelsItemClick {
     fun channelsItemClick(
         item: ProgramGuideSchedule<VideoItem>,
-        position: Int
+        position: Int,
+        onFavClick: (added: Boolean) -> Unit
     )
 }
 

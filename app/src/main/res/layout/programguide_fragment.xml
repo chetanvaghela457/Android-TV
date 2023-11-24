@@ -217,6 +217,9 @@
         android:id="@+id/playerViewRelative"
         style="@style/ProgramGuide.Image.Detail"
         android:layout_marginStart="10dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/dialog_stroke_button_bg"
         app:layout_constraintBottom_toBottomOf="@id/bottom_detail"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/bottom_detail">
@@ -227,6 +230,7 @@
             android:layout_height="match_parent"
             app:controller_layout_id="@layout/custom_controls"
             app:hide_on_touch="true"
+            android:padding="@dimen/_2sdp"
             app:player_layout_id="@layout/exo_player_view"
             app:resize_mode="fit"
             app:show_timeout="3000"
@@ -236,6 +240,7 @@
             android:id="@+id/youtube_player_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:padding="@dimen/_2sdp"
             app:enableAutomaticInitialization="false" />
 
         <ProgressBar

@@ -8,7 +8,7 @@
 
     <EditText
         android:id="@+id/etSearch"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:background="@drawable/button_bg"
@@ -16,22 +16,43 @@
         android:drawablePadding="10dp"
         android:drawableTint="@color/white"
         android:focusable="true"
-        android:focusedByDefault="true"
         android:focusableInTouchMode="true"
+        android:focusedByDefault="true"
+        android:hint="Search Item"
         android:imeOptions="actionDone"
         android:paddingStart="@dimen/_20sdp"
         android:paddingTop="@dimen/_5sdp"
         android:paddingEnd="@dimen/_20sdp"
         android:paddingBottom="@dimen/_5sdp"
         android:singleLine="true"
-        android:hint="Search Item"
+        android:textColor="@color/white"
+        android:textColorHighlight="@color/white"
+        android:textColorHint="@color/white"
+        android:textSize="@dimen/_9ssp"
+        app:layout_constraintEnd_toStartOf="@+id/dialogCancel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/dialogCancel"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_24sdp"
+        android:layout_margin="10dp"
+        android:background="@drawable/button_bg"
+        android:gravity="center"
+        android:paddingStart="@dimen/_20sdp"
+        android:paddingTop="@dimen/_3sdp"
+        android:paddingEnd="@dimen/_20sdp"
+        android:paddingBottom="@dimen/_3sdp"
+        android:singleLine="true"
+        android:text="Close"
         android:textColor="@color/white"
         android:textColorHighlight="@color/white"
         android:textColorHint="@color/white"
         android:textSize="@dimen/_9ssp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerviewSearch"
